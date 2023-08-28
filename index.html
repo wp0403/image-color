@@ -1,0 +1,105 @@
+<!--
+ * @Descripttion: 
+ * @version: 
+ * @Author: WangPeng
+ * @Date: 2023-08-28 11:35:53
+ * @LastEditors: WangPeng
+ * @LastEditTime: 2023-08-28 11:35:53
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="./style.css">
+    </link>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.4.0/color-thief.umd.js"></script>
+    <title>图片色卡提取</title>
+</head>
+
+<body>
+    <main>
+        <div class="img-box"><img id="img" src="" alt=""><canvas id="canvas"></canvas></div>
+        <div class="operate">
+            <h2>图片色卡提取</h2>
+            <div class="operate-upload">
+                <div class="operate-title">上传图片</div>
+                <input type="file" accept="image/*" id="image-input" />
+            </div>
+            <div class="operate-color">
+                <div class="color-main" id="color-main"></div>
+                <div class="color-palette" id="color-palette">暂无数据</div>
+            </div>
+            <div class="operate-desc" id="operate-desc"></div>
+        </div>
+    </main>
+    <footer></footer>
+</body>
+<script src="./index.js"></script>
+<script>
+    const fileInput = document.getElementById("image-input");
+    const colorPaletteContainer = document.getElementById("color-palette");
+    const colorMainContainer = document.getElementById("color-main");
+    const colorDescContainer = document.getElementById("operate-desc");
+    const colorThief = new ColorThief();
+
+    function clickFunc(item){
+        colorDescContainer.style.backgroundColor = item.rgb;
+        colorDescContainer.innerHTML = `
+        <div class="operate-title">${item.title}</div>
+        <div class="operate-text">RGB: ${item.rgb}</div>
+        <div class="operate-text">16进制: ${item.rgb16}</div>
+        `
+    }
+
+    // 监听输入框的change事件
+    fileInput.addEventListener("change", function (event) {
+        // 获取上传的文件
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        const imageElement = document.getElementById("img");
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        reader.onload = function (upload) {
+            const imageUrl = upload.target.result;
+
+            // 显示上传的图片
+            imageElement.src = imageUrl;
+        };
+
+        imageElement.onload = function () {
+            canvas.width = imageElement.width;
+            canvas.height = imageElement.height;
+            colorPaletteContainer.innerHTML = '暂无数据';
+            colorMainContainer.innerHTML = '';
+            setTimeout(function () {
+                ctx.drawImage(imageElement, 0, 0);
+                // 获取主色
+                const mainColor = colorThief.getColor(imageElement)
+                const mainColorObj = {
+                    title: '主色',
+                    rgb: `rgb(${mainColor.join(',')})`,
+                    rgb16: rgbToHex(...mainColor),
+                }
+                clickFunc(mainColorObj)
+                createPaletteItem(mainColorObj,colorMainContainer,clickFunc)
+                // 获取色卡
+                const paletteList = colorThief.getPalette(imageElement, 6)
+                const paletteListObj = paletteList.map((v, i) => ({
+                    id: i + 1,
+                    title: `色值${i + 1}`,
+                    rgb: `rgb(${v.join(',')})`,
+                    rgb16: rgbToHex(...v),
+                }))
+                colorPaletteContainer.innerHTML = '';
+                paletteListObj.forEach(v => createPaletteItem(v,colorPaletteContainer,clickFunc))
+            }, 100); // 延迟绘制以确保图像加载完成
+        }
+
+        reader.readAsDataURL(file);
+    });
+</script>
+
+</html>
